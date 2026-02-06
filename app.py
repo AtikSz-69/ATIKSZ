@@ -110,9 +110,31 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- API CONFIGURATION ---
-# Use Streamlit secrets for API key
-API_KEY = st.secrets["GEMINI_API_KEY"]
-genai.configure(api_key=API_KEY)
+# --- API CONFIGURATION ---
+# Robust API Key Loading (Works locally and on Streamlit Cloud)
+try:
+    if "GEMINI_API_KEY" in st.secrets:
+        API_KEY = st.secrets["GEMINI_API_KEY"]
+    else:
+        API_KEY = os.getenv("GEMINI_API_KEY")
+        
+    if not API_KEY:
+        st.error("⚠️ Gemini API Key not found! Please set 'GEMINI_API_KEY' in .streamlit/secrets.toml or Streamlit Cloud Secrets.")
+        st.stop()
+        
+    genai.configure(api_key=API_KEY)
+except FileNotFoundError:
+    # Fallback if secrets file doesn't exist (e.g. initial local run without setup)
+    API_KEY = os.getenv("GEMINI_API_KEY")
+    if not API_KEY:
+         st.warning("⚠️ Tips: To use the AI features, you need to configure your API key.")
+         API_KEY = st.text_input("Enter your Gemini API Key manually:", type="password")
+         if not API_KEY:
+             st.stop()
+    genai.configure(api_key=API_KEY)
+except Exception as e:
+    st.error(f"Configuration Error: {e}")
+    st.stop()
 
 # --- DATA MANAGEMENT ---
 KNOWLEDGE_BASE_PATH = Path("knowledge_base")
